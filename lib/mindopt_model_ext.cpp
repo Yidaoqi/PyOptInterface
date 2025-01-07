@@ -15,7 +15,7 @@ NB_MODULE(mindopt_model_ext, m)
 	m.def("load_library", &mindopt::load_library);
 
 #define BIND_F(f) .def(#f, &MindoptEnv::f)
-	nb::class_<MindoptEnv>(m, "RawEnv")
+	nb::class_<MindoptEnv>(m, "Env")
 	    .def(nb::init<bool>(), nb::arg("empty") = false)
 	    // clang-format off
 		BIND_F(start)

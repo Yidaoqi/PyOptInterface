@@ -354,6 +354,7 @@ model_attribute_get_func_map = {
     ModelAttribute.SolverVersion: lambda model: model.version_string(),
 }
 
+
 model_attribute_get_translate_func_map = {
     ModelAttribute.ObjectiveSense: lambda v: {
         GRB.MINIMIZE: ObjectiveSense.Minimize,
