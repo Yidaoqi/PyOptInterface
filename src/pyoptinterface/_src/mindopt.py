@@ -30,12 +30,12 @@ def detected_libraries():
     libs = []
 
     subdir = {
-        "Linux": "lib",
-        "Darwin": "lib",
+        "Linux": "linux64-x86/lib",
+        "Darwin": "osx64-x86/lib",
         "Windows": "win64-x86/bin",
     }[platform.system()]
     libnames = {
-        "Linux": ["libiomp5md.so", "libmindopt.so", "libmindoptjni.so"],
+        "Linux": ["libiomp5.so", "libmindopt.so", "libmindoptjni.so"],
         "Darwin": ["libiomp5md.dylib", "libmindopt.dylib", "libmindoptjni.dylib"],
         "Windows": ["libiomp5md.dll", "mindopt.dll", "mindoptjni.dll"],
     }[platform.system()]
@@ -54,9 +54,20 @@ def detected_libraries():
             if lib.exists():
                 libs.append(str(lib))
 
+    try:
+        import mindoptpy
+
+        dir = Path(mindoptpy.__path__[0])
+        if platform.system() != "Windows":
+            dir = dir / ".libs"
+        for path in dir.glob(suffix_pattern):
+            libs.append(str(path))
+    except Exception:
+        pass
+
     # default names
     default_libname = {
-        "Linux": ["libiomp5md.so", "libmindopt.so", "libmindoptjni.so"],
+        "Linux": ["libiomp5.so", "libmindopt.so", "libmindoptjni.so"],
         "Darwin": ["libiomp5md.dylib", "libmindopt.dylib", "libmindoptjni.dylib"],
         "Windows": ["libiomp5md.dll", "mindopt.dll", "mindoptjni.dll"],
     }[platform.system()]
