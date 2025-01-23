@@ -256,6 +256,25 @@ lib/mindopt_model_ext.cpp
 target_link_libraries(mindopt_model_ext PUBLIC mindopt_model)
 install(TARGETS mindopt_model_ext LIBRARY DESTINATION ${POI_INSTALL_DIR})
 
+#clp
+add_library(clp_model STATIC)
+target_sources(clp_model PRIVATE
+include/pyoptinterface/clp_model.hpp
+lib/clp_model.cpp)
+target_include_directories(clp_model PUBLIC thirdparty/solvers/clp)
+target_link_libraries(clp_model PUBLIC core)
+
+nanobind_add_module(
+clp_model_ext
+
+STABLE_ABI NB_STATIC
+
+lib/clp_model_ext.cpp
+)
+target_link_libraries(clp_model_ext PUBLIC clp_model)
+install(TARGETS clp_model_ext LIBRARY DESTINATION ${POI_INSTALL_DIR})
+
+
 # stub
 nanobind_add_stub(
   core_ext_stub
