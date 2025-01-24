@@ -78,5 +78,43 @@ bool load_library(const std::string &path)
 		return false;
 	}
 }
-
 }  // namespace clp
+
+void ClpModel::write(const std::string &filename)
+{
+	int error = -1;
+	if (filename.ends_with(".mps"))
+	{
+		error = clp::Clp_writeMps(m_model.get(), filename.c_str(), 0, 1, 1);
+	}
+	check_error(error);
+}
+
+VariableIndex ClpModel::add_variable(VariableDomain domain, double lb, double ub, const char *name)
+{
+	if (name != nullptr && name[0] == '\0')
+	{
+		name = nullptr;
+	}
+	IndexT index = m_variable_index.add_index();
+	VariableIndex variable(index);
+	double columnLower[1] = {lb};
+	double columnUpper[1] = {ub};
+	double objective[1] = {0};
+
+	clp::Clp_addColumns(m_model.get(), 1, columnLower, columnUpper, objective, NULL, NULL, NULL);
+
+	return variable;
+}
+
+static void check_error(int error)
+{
+	if (error)
+	{
+		const int BUFFSIZE = 1000;
+		char errmsg[BUFFSIZE] = {0};
+
+		clp::Clp_GetRetcodeMsg(error, errmsg, BUFFSIZE);
+		throw std::runtime_error(errmsg);
+	}
+}

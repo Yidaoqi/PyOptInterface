@@ -16,7 +16,9 @@
  * stdbool.h is available with C99
  * __STDC_VERSION__ isn't available when compiling C++ - look at C++ version instead
  */
-#if (defined(__cplusplus) && __cplusplus >= 199901L) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
+#if (defined(__cplusplus) && __cplusplus >= 199901L) ||           \
+    (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || \
+    (defined(_MSVC_LANG) && _MSVC_LANG >= 199901L)
 #include <stdbool.h>
 #endif
 

@@ -73,7 +73,7 @@
 	B(Clp_columnUpper);            \
 	B(Clp_getNumElements);            \
 	B(Clp_getVectorStarts);           \
-	B(Clp_getIndices);     \
+	B(Clp_getIndices);			\
 	B(Clp_getVectorLengths);	\
 	B(Clp_getElements);			\
 	B(Clp_objectiveValue);		\
@@ -199,3 +199,88 @@ bool is_library_loaded();
 
 bool load_library(const std::string &path);
 }
+
+class ClpEnvConfig
+{
+  public:
+	ClpEnvConfig();
+	~ClpEnvConfig();
+
+	void set(const char *param_name, const char *value);
+
+  private:
+	copt_env_config *m_config;
+
+	friend class COPTEnv;
+};
+
+class ClpEnv
+{
+  public:
+	ClpEnv();
+	ClpEnv(ClpEnvConfig &config);
+	~ClpEnv();
+
+  private:
+	copt_env *m_env;
+
+	friend class ClpModel;
+};
+
+struct ClpfreemodelT
+{
+	void operator()(Clp_Simplex *model) const
+	{
+		clp::Clp_deleteModel(model);
+	};
+};
+
+class ClpModel;
+using ClpCallback = std::function<void(ClpModel *, int)>;
+
+//struct ClpCallbackUserdata
+//{
+//	void *model = nullptr;
+//	ClpCallback callback;
+//	int n_variables = 0;
+//	int where = 0;
+//	// store result of clp
+//	bool cb_get_mipsol_called = false;
+//	std::vector<double> mipsol;
+//	bool cb_get_mipnoderel_called = false;
+//	std::vector<double> mipnoderel;
+//	bool cb_get_mipincumbent_called = false;
+//	std::vector<double> mipincumbent;
+//	// Cache for cbsolution
+//	bool cb_set_solution_called = false;
+//	std::vector<double> heuristic_solution;
+//	bool cb_requires_submit_solution = false;
+//};
+
+
+class ClpModel
+{
+  public:
+	ClpModel() = default;
+
+	void write(const std::string &filename);
+
+	VariableIndex add_variable(VariableDomain domain = VariableDomain::Continuous,
+	                           double lb = -COIN_DBL_MAX, double ub = COIN_DBL_MAX,
+	                           const char *name = nullptr);
+
+  private:
+	MonotoneIndexer<int> m_variable_index;
+
+	MonotoneIndexer<int> m_linear_constraint_index;
+
+	MonotoneIndexer<int> m_quadratic_constraint_index;
+
+	MonotoneIndexer<int> m_sos_constraint_index;
+
+	MonotoneIndexer<int> m_cone_constraint_index;
+
+	MonotoneIndexer<int> m_exp_cone_constraint_index;
+
+	std::unique_ptr<Clp_Simplex, ClpfreemodelT> m_model;
+};
