@@ -74,4 +74,128 @@
 	B(Clp_getNumElements);            \
 	B(Clp_getVectorStarts);           \
 	B(Clp_getIndices);     \
-	B(Clp_getVectorLengths);
+	B(Clp_getVectorLengths);	\
+	B(Clp_getElements);			\
+	B(Clp_objectiveValue);		\
+	B(Clp_integerInformation);	\
+	B(Clp_infeasibilityRay);	\
+	B(Clp_unboundedRay);		\
+	B(Clp_freeRay);				\
+	B(Clp_statusExists);		\
+	B(Clp_statusArray);			\
+	B(Clp_copyinStatus);		\
+	B(Clp_getColumnStatus);		\
+	B(Clp_getRowStatus);		\
+	B(Clp_setColumnStatus);		\
+	B(Clp_setRowStatus);		\
+	B(Clp_setUserPointer);		\
+	B(Clp_getUserPointer);		\
+	B(Clp_registerCallBack);	\
+	B(Clp_clearCallBack);		\
+	B(Clp_setLogLevel);			\
+	B(Clp_logLevel);			\
+	B(Clp_lengthNames);			\
+	B(Clp_rowName);				\
+	B(Clp_columnName);			\
+	B(Clp_setRowName);			\
+	B(Clp_setColumnName);		\
+	B(Clp_initialSolve);		\
+	B(Clp_initialSolveWithOptions);	\
+	B(Clp_initialDualSolve);		\
+	B(Clp_initialPrimalSolve);		\
+	B(Clp_initialBarrierSolve);		\
+	B(Clp_initialBarrierNoCrossSolve);	\
+	B(Clp_dual);						\
+	B(Clp_primal);						\
+	B(Clp_idiot);						\
+	B(Clp_scaling);						\
+	B(Clp_scalingFlag);					\
+	B(Clp_crash);						\
+	B(Clp_primalFeasible);				\
+	B(Clp_dualFeasible);				\
+	B(Clp_dualBound);					\
+	B(Clp_setDualBound);				\
+	B(Clp_infeasibilityCost);			\
+	B(Clp_setInfeasibilityCost);		\
+	B(Clp_perturbation);				\
+	B(Clp_setPerturbation);				\
+	B(Clp_algorithm);					\
+	B(Clp_setAlgorithm);				\
+	B(Clp_sumDualInfeasibilities);		\
+	B(Clp_numberDualInfeasibilities);	\
+	B(Clp_sumPrimalInfeasibilities);	\
+	B(Clp_numberPrimalInfeasibilities);	\
+	B(Clp_saveModel);					\
+	B(Clp_restoreModel);				\
+	B(Clp_checkSolution);				\
+	B(Clp_getNumRows);					\
+	B(Clp_getNumCols);					\
+	B(Clp_getIterationCount);			\
+	B(Clp_isAbandoned);					\
+	B(Clp_isProvenOptimal);				\
+	B(Clp_isProvenPrimalInfeasible);	\
+	B(Clp_isProvenDualInfeasible);		\
+	B(Clp_isPrimalObjectiveLimitReached);\
+	B(Clp_isDualObjectiveLimitReached);	\
+	B(Clp_isIterationLimitReached);		\
+	B(Clp_getObjSense);					\
+	B(Clp_setObjSense);					\
+	B(Clp_getRowActivity);				\
+	B(Clp_getColSolution);				\
+	B(Clp_setColSolution);				\
+	B(Clp_getRowPrice);					\
+	B(Clp_getReducedCost);				\
+	B(Clp_getRowLower);					\
+	B(Clp_getRowUpper);					\
+	B(Clp_getObjCoefficients);			\
+	B(Clp_getColLower);					\
+	B(Clp_getColUpper);					\
+	B(Clp_getObjValue);					\
+	B(Clp_printModel);					\
+	B(Clp_getSmallElementValue);		\
+	B(Clp_setSmallElementValue);		\
+	B(ClpSolve_setSpecialOption);		\
+	B(ClpSolve_getSpecialOption);		\
+	B(ClpSolve_setSolveType);			\
+	B(ClpSolve_getSolveType);			\
+	B(ClpSolve_setPresolveType);		\
+	B(ClpSolve_getPresolveType);		\
+	B(ClpSolve_getPresolvePasses);		\
+	B(ClpSolve_getExtraInfo);			\
+	B(ClpSolve_setInfeasibleReturn);	\
+	B(ClpSolve_infeasibleReturn);		\
+	B(ClpSolve_doDual);					\
+	B(ClpSolve_setDoDual);				\
+	B(ClpSolve_doSingleton);			\
+	B(ClpSolve_setDoSingleton);			\
+	B(ClpSolve_doDoubleton);			\
+	B(ClpSolve_setDoDoubleton);			\
+	B(ClpSolve_doTripleton);			\
+	B(ClpSolve_setDoTripleton);			\
+	B(ClpSolve_doTighten);				\
+	B(ClpSolve_setDoTighten);			\
+	B(ClpSolve_doForcing);				\
+	B(ClpSolve_setDoForcing);			\
+	B(ClpSolve_doImpliedFree);			\
+	B(ClpSolve_setDoImpliedFree);		\
+	B(ClpSolve_doDupcol);				\
+	B(ClpSolve_setDoDupcol);			\
+	B(ClpSolve_doDuprow);				\
+	B(ClpSolve_setDoDuprow);			\
+	B(ClpSolve_doSingletonColumn);		\
+	B(ClpSolve_setDoSingletonColumn);	\
+	B(ClpSolve_presolveActions);		\
+	B(ClpSolve_setPresolveActions);		\
+	B(ClpSolve_substitution);			\
+	B(ClpSolve_setSubstitution);
+
+namespace clp
+{
+#define B DYLIB_EXTERN_DECLARE
+APILIST
+#undef B
+
+bool is_library_loaded();
+
+bool load_library(const std::string &path);
+}
