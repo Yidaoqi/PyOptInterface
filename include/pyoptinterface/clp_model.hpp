@@ -261,13 +261,21 @@ using ClpCallback = std::function<void(ClpModel *, int)>;
 class ClpModel
 {
   public:
-	ClpModel() = default;
+	ClpModel();
+
+	void init();
 
 	void write(const std::string &filename);
 
 	VariableIndex add_variable(VariableDomain domain = VariableDomain::Continuous,
 	                           double lb = -COIN_DBL_MAX, double ub = COIN_DBL_MAX,
 	                           const char *name = nullptr);
+	void delete_variable(const VariableIndex &variable);
+	bool is_variable_active(const VariableIndex &variable);
+	double get_variable_value(const VariableIndex &variable);
+	std::string pprint_variable(const VariableIndex &variable);
+	void set_variable_bounds(const VariableIndex &variable, double lb, double ub);
+
 
   private:
 	MonotoneIndexer<int> m_variable_index;

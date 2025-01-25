@@ -80,6 +80,22 @@ bool load_library(const std::string &path)
 }
 }  // namespace clp
 
+ClpModel::ClpModel()
+{
+	init();
+}
+
+void ClpModel::init()
+{
+
+	if (!clp::is_library_loaded())
+	{
+		throw std::runtime_error("Clp library is not loaded");
+	}
+	Clp_Simplex *model = clp::Clp_newModel();
+	m_model = std::unique_ptr<Clp_Simplex, ClpfreemodelT>(model);
+}
+
 void ClpModel::write(const std::string &filename)
 {
 	int error = -1;
@@ -98,13 +114,53 @@ VariableIndex ClpModel::add_variable(VariableDomain domain, double lb, double ub
 	}
 	IndexT index = m_variable_index.add_index();
 	VariableIndex variable(index);
-	double columnLower[1] = {lb};
-	double columnUpper[1] = {ub};
-	double objective[1] = {0};
+	double objective = 0;
 
-	clp::Clp_addColumns(m_model.get(), 1, columnLower, columnUpper, objective, NULL, NULL, NULL);
+	clp::Clp_addColumns(m_model.get(), 1, &lb, &ub, &objective, NULL, NULL, NULL);
 
 	return variable;
+}
+
+void ClpModel::delete_variable(const VariableIndex &variable)
+{
+
+	if (!is_variable_active(variable))
+	{
+		throw std::runtime_error("Variable does not exist");
+	}
+
+	int variable_column = _variable_index(variable);
+	clp::Clp_deleteColumns(m_model.get(), 1, &variable_column);
+
+	m_variable_index.delete_index(variable.index);
+}
+
+bool ClpModel::is_variable_active(const VariableIndex &variable)
+{
+	return m_variable_index.has_index(variable.index);
+}
+
+double ClpModel::get_variable_value(const VariableIndex &variable)
+{
+	return get_variable_info(variable, COPT_DBLINFO_VALUE);
+}
+
+std::string ClpModel::pprint_variable(const VariableIndex &variable)
+{
+	return get_variable_name(variable);
+}
+
+void ClpModel::set_variable_bounds(const VariableIndex &variable, double lb, double ub)
+{
+	auto column = _checked_variable_index(variable);
+	int cols = clp::Clp_getNumCols(m_model.get());
+	double *columnLower = const_cast<double *>(clp::Clp_getColLower(m_model.get()));
+	double *columnUpper = const_cast<double *>(clp::Clp_getColUpper(m_model.get()));
+
+	columnLower[column] = lb;
+	columnUpper[column] = ub;
+	clp::Clp_chgColumnLower(m_model.get(), columnLower);
+	clp::Clp_chgColumnUpper(m_model.get(), columnUpper);
 }
 
 static void check_error(int error)
