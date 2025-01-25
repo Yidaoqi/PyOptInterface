@@ -106,7 +106,7 @@ void ClpModel::write(const std::string &filename)
 	check_error(error);
 }
 
-VariableIndex ClpModel::add_variable(VariableDomain domain, double lb, double ub, const char *name)
+VariableIndex ClpModel::add_variable(VariableDomain domain, double lb, double ub, char *name)
 {
 	if (name != nullptr && name[0] == '\0')
 	{
@@ -117,7 +117,7 @@ VariableIndex ClpModel::add_variable(VariableDomain domain, double lb, double ub
 	double objective = 0;
 
 	clp::Clp_addColumns(m_model.get(), 1, &lb, &ub, &objective, NULL, NULL, NULL);
-
+	clp::Clp_setColumnName(m_model.get(), clp::Clp_getNumCols(m_model.get()) - 1, name);
 	return variable;
 }
 
@@ -133,6 +133,32 @@ void ClpModel::delete_variable(const VariableIndex &variable)
 	clp::Clp_deleteColumns(m_model.get(), 1, &variable_column);
 
 	m_variable_index.delete_index(variable.index);
+}
+
+void ClpModel::delete_variables(const Vector<VariableIndex> &variables)
+{
+	int n_variables = variables.size();
+	if (n_variables == 0)
+		return;
+
+	std::vector<int> columns;
+	columns.reserve(n_variables);
+	for (int i = 0; i < n_variables; i++)
+	{
+		if (!is_variable_active(variables[i]))
+		{
+			continue;
+		}
+		auto column = _variable_index(variables[i]);
+		columns.push_back(column);
+	}
+
+	clp::Clp_deleteColumns(m_model.get(), columns.size(), columns.data());
+
+	for (int i = 0; i < n_variables; i++)
+	{
+		m_variable_index.delete_index(variables[i].index);
+	}
 }
 
 bool ClpModel::is_variable_active(const VariableIndex &variable)
@@ -163,6 +189,75 @@ void ClpModel::set_variable_bounds(const VariableIndex &variable, double lb, dou
 	clp::Clp_chgColumnUpper(m_model.get(), columnUpper);
 }
 
+
+ConstraintIndex ClpModel::add_linear_constraint(const ScalarAffineFunction &function,
+                                                ConstraintSense sense, CoeffT rhs, char *name)
+{
+	IndexT index = m_linear_constraint_index.add_index();
+	ConstraintIndex constraint_index(ConstraintType::Linear, index);
+
+	AffineFunctionPtrForm<int, int, double> ptr_form;
+	ptr_form.make(this, function);
+
+	int numnz = ptr_form.numnz;
+	int *cind = ptr_form.index;
+	double *cval = ptr_form.value;
+	double g_rhs = rhs - function.constant.value_or(0.0);
+
+	if (name != nullptr && name[0] == '\0')
+	{
+		name = nullptr;
+	}
+
+	clp::Clp_addRows(m_model.get(), numnz, &g_rhs, &g_rhs, cind, NULL, cval);
+	clp::Clp_setRowName(m_model.get(), clp::Clp_getNumRows(m_model.get()) - 1, name);
+	return constraint_index;
+}
+
+int ClpModel::_variable_index(const VariableIndex &variable)
+{
+	return m_variable_index.get_index(variable.index);
+}
+
+int ClpModel::_checked_variable_index(const VariableIndex &variable)
+{
+	int column = _variable_index(variable);
+	if (column < 0)
+	{
+		throw std::runtime_error("Variable does not exist");
+	}
+	return column;
+}
+
+int ClpModel::_constraint_index(const ConstraintIndex &constraint)
+{
+	switch (constraint.type)
+	{
+	case ConstraintType::Linear:
+		return m_linear_constraint_index.get_index(constraint.index);
+	case ConstraintType::Quadratic:
+		return m_quadratic_constraint_index.get_index(constraint.index);
+	case ConstraintType::SOS:
+		return m_sos_constraint_index.get_index(constraint.index);
+	case ConstraintType::Cone:
+		return m_cone_constraint_index.get_index(constraint.index);
+	case ConstraintType::COPT_ExpCone:
+		return m_exp_cone_constraint_index.get_index(constraint.index);
+	default:
+		throw std::runtime_error("Unknown constraint type");
+	}
+}
+
+int ClpModel::_checked_constraint_index(const ConstraintIndex &constraint)
+{
+	int row = _constraint_index(constraint);
+	if (row < 0)
+	{
+		throw std::runtime_error("Constraint does not exist");
+	}
+	return row;
+}
+
 static void check_error(int error)
 {
 	if (error)
@@ -172,5 +267,20 @@ static void check_error(int error)
 
 		clp::Clp_GetRetcodeMsg(error, errmsg, BUFFSIZE);
 		throw std::runtime_error(errmsg);
+	}
+}
+
+static char copt_con_sense(ConstraintSense sense)
+{
+	switch (sense)
+	{
+	case ConstraintSense::LessEqual:
+		return CLP_LESS_EQUAL;
+	case ConstraintSense::Equal:
+		return CLP_EQUAL;
+	case ConstraintSense::GreaterEqual:
+		return CLP_GREATER_EQUAL;
+	default:
+		throw std::runtime_error("Unknown constraint sense");
 	}
 }

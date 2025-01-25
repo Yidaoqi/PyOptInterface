@@ -269,13 +269,32 @@ class ClpModel
 
 	VariableIndex add_variable(VariableDomain domain = VariableDomain::Continuous,
 	                           double lb = -COIN_DBL_MAX, double ub = COIN_DBL_MAX,
-	                           const char *name = nullptr);
+	                           char *name = nullptr);
 	void delete_variable(const VariableIndex &variable);
+	void delete_variables(const Vector<VariableIndex> &variables);
+
 	bool is_variable_active(const VariableIndex &variable);
 	double get_variable_value(const VariableIndex &variable);
 	std::string pprint_variable(const VariableIndex &variable);
 	void set_variable_bounds(const VariableIndex &variable, double lb, double ub);
 
+	ConstraintIndex add_linear_constraint(const ScalarAffineFunction &function,
+	                                      ConstraintSense sense, CoeffT rhs,
+	                                      char *name = nullptr);
+	ConstraintIndex add_quadratic_constraint(const ScalarQuadraticFunction &function,
+	                                         ConstraintSense sense, CoeffT rhs,
+	                                         const char *name = nullptr);
+	ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type);
+	ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type,
+	                                   const Vector<CoeffT> &weights);
+
+
+
+
+	int _variable_index(const VariableIndex &variable);
+	int _checked_variable_index(const VariableIndex &variable);
+	int _constraint_index(const ConstraintIndex &constraint);
+	int _checked_constraint_index(const ConstraintIndex &constraint);
 
   private:
 	MonotoneIndexer<int> m_variable_index;
