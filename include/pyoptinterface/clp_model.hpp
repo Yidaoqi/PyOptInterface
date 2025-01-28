@@ -284,17 +284,116 @@ class ClpModel
 	ConstraintIndex add_quadratic_constraint(const ScalarQuadraticFunction &function,
 	                                         ConstraintSense sense, CoeffT rhs,
 	                                         const char *name = nullptr);
-	ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type);
-	ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type,
-	                                   const Vector<CoeffT> &weights);
+	//ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type);
+	//ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type,
+	//                                   const Vector<CoeffT> &weights);
 
 
 
+	void delete_constraint(const ConstraintIndex &constraint);
+	bool is_constraint_active(const ConstraintIndex &constraint);
+
+	void _set_affine_objective(const ScalarAffineFunction &function, ObjectiveSense sense,
+	                           bool clear_quadratic);
+	void set_objective(const ScalarAffineFunction &function, ObjectiveSense sense);
+	void set_objective(const ScalarQuadraticFunction &function, ObjectiveSense sense);
+	void set_objective(const ExprBuilder &function, ObjectiveSense sense);
+
+	void optimize();
+	void *get_raw_model();
+	std::string version_string();
+
+	/*
+	 * Returns the type of a COPT parameter or attribute, given its name.
+	 * -1: unknown
+	 *  0: double parameter
+	 *  1: int parameter
+	 *  2: double attribute
+	 *  3: int attribute
+	 *
+	 * Use undocumented COPT function
+	 * int COPT_SearchParamAttr(copt_prob* prob, const char* name, int* p_type)
+	 */
+	int raw_parameter_attribute_type(const char *name);
+
+	// parameter
+	void set_raw_parameter_int(const char *param_name, int value);
+	void set_raw_parameter_double(const char *param_name, double value);
+	int get_raw_parameter_int(const char *param_name);
+	double get_raw_parameter_double(const char *param_name);
+
+	// attribute
+	int get_raw_attribute_int(const char *attr_name);
+	double get_raw_attribute_double(const char *attr_name);
+
+	// Accessing information of problem
+	double get_variable_info(const VariableIndex &variable, const char *info_name);
+	std::string get_variable_name(const VariableIndex &variable);
+	void set_variable_name(const VariableIndex &variable, const char *name);
+	VariableDomain get_variable_type(const VariableIndex &variable);
+	void set_variable_type(const VariableIndex &variable, VariableDomain domain);
+	void set_variable_lower_bound(const VariableIndex &variable, double lb);
+	void set_variable_upper_bound(const VariableIndex &variable, double ub);
+
+	double get_constraint_info(const ConstraintIndex &constraint, const char *info_name);
+	std::string get_constraint_name(const ConstraintIndex &constraint);
+	void set_constraint_name(const ConstraintIndex &constraint, const char *name);
+
+	void set_obj_sense(ObjectiveSense sense);
+
+	// MIPStart
+	void add_mip_start(const Vector<VariableIndex> &variables, const Vector<double> &values);
+
+	// Modifications of model
+	// 1. set/get RHS of a constraint
+	double get_normalized_rhs(const ConstraintIndex &constraint);
+	void set_normalized_rhs(const ConstraintIndex &constraint, double value);
+	// 2. set/get coefficient of variable in constraint
+	double get_normalized_coefficient(const ConstraintIndex &constraint,
+	                                  const VariableIndex &variable);
+	void set_normalized_coefficient(const ConstraintIndex &constraint,
+	                                const VariableIndex &variable, double value);
+	// 3. set/get linear coefficient of variable in objective
+	double get_objective_coefficient(const VariableIndex &variable);
+	void set_objective_coefficient(const VariableIndex &variable, double value);
 
 	int _variable_index(const VariableIndex &variable);
 	int _checked_variable_index(const VariableIndex &variable);
 	int _constraint_index(const ConstraintIndex &constraint);
 	int _checked_constraint_index(const ConstraintIndex &constraint);
+
+	// Callback
+	void set_callback(const COPTCallback &callback, int cbctx);
+
+	// For callback
+	bool has_callback = false;
+	void *m_cbdata = nullptr;
+	COPTCallbackUserdata m_callback_userdata;
+
+	int cb_get_info_int(const std::string &what);
+	double cb_get_info_double(const std::string &what);
+	void cb_get_info_doublearray(const std::string &what);
+
+	double cb_get_solution(const VariableIndex &variable);
+	double cb_get_relaxation(const VariableIndex &variable);
+	double cb_get_incumbent(const VariableIndex &variable);
+	void cb_set_solution(const VariableIndex &variable, double value);
+	double cb_submit_solution();
+
+	void cb_exit();
+
+	void cb_add_lazy_constraint(const ScalarAffineFunction &function, ConstraintSense sense,
+	                            CoeffT rhs);
+	void cb_add_lazy_constraint(const ExprBuilder &function, ConstraintSense sense, CoeffT rhs);
+	void cb_add_user_cut(const ScalarAffineFunction &function, ConstraintSense sense, CoeffT rhs);
+	void cb_add_user_cut(const ExprBuilder &function, ConstraintSense sense, CoeffT rhs);
+
+	// IIS related
+	void computeIIS();
+	int _get_variable_upperbound_IIS(const VariableIndex &variable);
+	int _get_variable_lowerbound_IIS(const VariableIndex &variable);
+	int _get_constraint_IIS(const ConstraintIndex &constraint);
+
 
   private:
 	MonotoneIndexer<int> m_variable_index;

@@ -214,6 +214,128 @@ ConstraintIndex ClpModel::add_linear_constraint(const ScalarAffineFunction &func
 	return constraint_index;
 }
 
+ConstraintIndex ClpModel::add_quadratic_constraint(const ScalarQuadraticFunction &function,
+                                                   ConstraintSense sense, CoeffT rhs,
+                                                   const char *name)
+{
+	return ConstraintIndex();
+}
+
+void ClpModel::delete_constraint(const ConstraintIndex &constraint)
+{
+	int error = -1;
+	int constraint_row = _constraint_index(constraint);
+	if (constraint_row >= 0)
+	{
+		switch (constraint.type)
+		{
+		case ConstraintType::Linear:
+			m_linear_constraint_index.delete_index(constraint.index);
+			clp::Clp_deleteRows(m_model.get(), 1, &constraint_row);
+			error = 0;
+			break;
+		//case ConstraintType::Quadratic:
+		//	m_quadratic_constraint_index.delete_index(constraint.index);
+		//	error = copt::COPT_DelQConstrs(m_model.get(), 1, &constraint_row);
+		//	break;
+		//case ConstraintType::SOS:
+		//	m_sos_constraint_index.delete_index(constraint.index);
+		//	error = copt::COPT_DelSOSs(m_model.get(), 1, &constraint_row);
+		//	break;
+		//case ConstraintType::Cone:
+		//	m_cone_constraint_index.delete_index(constraint.index);
+		//	error = copt::COPT_DelCones(m_model.get(), 1, &constraint_row);
+		//	break;
+		//case ConstraintType::COPT_ExpCone:
+		//	m_exp_cone_constraint_index.delete_index(constraint.index);
+		//	error = copt::COPT_DelExpCones(m_model.get(), 1, &constraint_row);
+		//	break;
+		default:
+			throw std::runtime_error("Unknown constraint type");
+		}
+	}
+	check_error(error);
+}
+
+bool ClpModel::is_constraint_active(const ConstraintIndex &constraint)
+{
+	switch (constraint.type)
+	{
+	case ConstraintType::Linear:
+		return m_linear_constraint_index.has_index(constraint.index);
+	case ConstraintType::Quadratic:
+		return m_quadratic_constraint_index.has_index(constraint.index);
+	case ConstraintType::SOS:
+		return m_sos_constraint_index.has_index(constraint.index);
+	case ConstraintType::Cone:
+		return m_cone_constraint_index.has_index(constraint.index);
+	case ConstraintType::COPT_ExpCone:
+		return m_exp_cone_constraint_index.has_index(constraint.index);
+	default:
+		throw std::runtime_error("Unknown constraint type");
+	}
+}
+
+void ClpModel::set_objective(const ScalarAffineFunction &function, ObjectiveSense sense)
+{
+	_set_affine_objective(function, sense, true);
+}
+
+void ClpModel::set_objective(const ScalarQuadraticFunction &function, ObjectiveSense sense)
+{
+	
+	int error = 0;
+	// First delete all quadratic terms
+	//error = clp::COPT_DelQuadObj(m_model.get());
+	//check_error(error);
+
+	// Add quadratic term
+	int numqnz = function.size();
+	if (numqnz > 0)
+	{
+		QuadraticFunctionPtrForm<int, int, double> ptr_form;
+		ptr_form.make(this, function);
+		int numqnz = ptr_form.numnz;
+		int *qrow = ptr_form.row;
+		int *qcol = ptr_form.col;
+		double *qval = ptr_form.value;
+
+		clp::Clp_loadQuadraticObjective(m_model.get(), numqnz, qrow, qcol, qval);
+	}
+
+	// Affine part
+	const auto &affine_part = function.affine_part;
+	if (affine_part)
+	{
+		const auto &affine_function = affine_part.value();
+		_set_affine_objective(affine_function, sense, false);
+	}
+	else
+	{
+		ScalarAffineFunction zero;
+		_set_affine_objective(zero, sense, false);
+	}
+}
+
+void ClpModel::set_objective(const ExprBuilder &function, ObjectiveSense sense)
+{
+	auto deg = function.degree();
+	if (deg <= 1)
+	{
+		ScalarAffineFunction f(function);
+		set_objective(f, sense);
+	}
+	else if (deg == 2)
+	{
+		ScalarQuadraticFunction f(function);
+		set_objective(f, sense);
+	}
+	else
+	{
+		throw std::runtime_error("Objective must be linear or quadratic");
+	}
+}
+
 int ClpModel::_variable_index(const VariableIndex &variable)
 {
 	return m_variable_index.get_index(variable.index);
@@ -283,4 +405,15 @@ static char copt_con_sense(ConstraintSense sense)
 	default:
 		throw std::runtime_error("Unknown constraint sense");
 	}
+}
+
+void *ClpModel::get_raw_model()
+{
+	return m_model.get();
+}
+
+std::string ClpModel::version_string()
+{
+	const char* buffer = clp::Clp_Version();
+	return buffer;
 }
