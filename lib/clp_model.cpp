@@ -276,6 +276,47 @@ bool ClpModel::is_constraint_active(const ConstraintIndex &constraint)
 	}
 }
 
+void ClpModel::_set_affine_objective(const ScalarAffineFunction &function, ObjectiveSense sense,
+                                     bool clear_quadratic)
+{
+	int error = 0;
+	if (clear_quadratic)
+	{
+		// First delete all quadratic terms
+		error = clp::Clp_DelQuadObj(m_model.get());
+		check_error(error);
+	}
+
+	// Set Obj attribute of each variable
+	int n_variables = get_raw_attribute_int(COPT_INTATTR_COLS);
+	std::vector<int> ind_v(n_variables);
+	for (int i = 0; i < n_variables; i++)
+	{
+		ind_v[i] = i;
+	}
+	std::vector<double> obj_v(n_variables, 0.0);
+
+	int numnz = function.size();
+	for (int i = 0; i < numnz; i++)
+	{
+		auto column = _variable_index(function.variables[i]);
+		if (column < 0)
+		{
+			throw std::runtime_error("Variable does not exist");
+		}
+		obj_v[column] = function.coefficients[i];
+	}
+
+	clp::Clp_chgObjCoefficients(m_model.get(), obj_v.data());
+	check_error(error);
+	clp::COPT_SetObjConst(m_model.get(), function.constant.value_or(0.0));
+	check_error(error);
+
+	int obj_sense = clp_obj_sense(sense);
+	clp::Clp_setObjSense(m_model.get(), obj_sense);
+	check_error(error);
+}
+
 void ClpModel::set_objective(const ScalarAffineFunction &function, ObjectiveSense sense)
 {
 	_set_affine_objective(function, sense, true);
@@ -407,6 +448,19 @@ static char copt_con_sense(ConstraintSense sense)
 	}
 }
 
+void ClpModel::optimize()
+{
+	if (has_callback)
+	{
+		// Store the number of variables for the callback
+		m_callback_userdata.n_variables = get_raw_attribute_int("Cols");
+	}
+	clp::Clp_initialSolve(m_model.get());
+	double* solutions = clp::Clp_primalColumnSolution(m_model.get());
+	int error = clp::Clp_status(m_model.get());
+	check_error(error);
+}
+
 void *ClpModel::get_raw_model()
 {
 	return m_model.get();
@@ -416,4 +470,17 @@ std::string ClpModel::version_string()
 {
 	const char* buffer = clp::Clp_Version();
 	return buffer;
+}
+
+static int clp_obj_sense(ObjectiveSense sense)
+{
+	switch (sense)
+	{
+	case ObjectiveSense::Minimize:
+		return COPT_MINIMIZE;
+	case ObjectiveSense::Maximize:
+		return COPT_MAXIMIZE;
+	default:
+		throw std::runtime_error("Unknown objective sense");
+	}
 }

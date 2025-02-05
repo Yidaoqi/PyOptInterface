@@ -304,15 +304,13 @@ class ClpModel
 	std::string version_string();
 
 	/*
-	 * Returns the type of a COPT parameter or attribute, given its name.
+	 * Returns the type of a clp parameter or attribute, given its name.
 	 * -1: unknown
 	 *  0: double parameter
 	 *  1: int parameter
 	 *  2: double attribute
 	 *  3: int attribute
 	 *
-	 * Use undocumented COPT function
-	 * int COPT_SearchParamAttr(copt_prob* prob, const char* name, int* p_type)
 	 */
 	int raw_parameter_attribute_type(const char *name);
 
