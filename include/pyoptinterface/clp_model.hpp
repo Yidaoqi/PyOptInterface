@@ -8,6 +8,7 @@
 #include "pyoptinterface/container.hpp"
 #include "pyoptinterface/solver_common.hpp"
 #include "pyoptinterface/dylib.hpp"
+#include "copt_model.hpp"
 
 // define CLP C APIs
 #define APILIST               \
@@ -236,26 +237,26 @@ struct ClpfreemodelT
 };
 
 class ClpModel;
-using ClpCallback = std::function<void(ClpModel *, int)>;
+//using ClpCallback = std::function<void(ClpModel *, int)>;
 
-//struct ClpCallbackUserdata
-//{
-//	void *model = nullptr;
-//	ClpCallback callback;
-//	int n_variables = 0;
-//	int where = 0;
-//	// store result of clp
-//	bool cb_get_mipsol_called = false;
-//	std::vector<double> mipsol;
-//	bool cb_get_mipnoderel_called = false;
-//	std::vector<double> mipnoderel;
-//	bool cb_get_mipincumbent_called = false;
-//	std::vector<double> mipincumbent;
-//	// Cache for cbsolution
-//	bool cb_set_solution_called = false;
-//	std::vector<double> heuristic_solution;
-//	bool cb_requires_submit_solution = false;
-//};
+struct ClpCallbackUserdata
+{
+	void *model = nullptr;
+	clp_callback callback;
+	int n_variables = 0;
+	int where = 0;
+	// store result of clp
+	bool cb_get_mipsol_called = false;
+	std::vector<double> mipsol;
+	bool cb_get_mipnoderel_called = false;
+	std::vector<double> mipnoderel;
+	bool cb_get_mipincumbent_called = false;
+	std::vector<double> mipincumbent;
+	// Cache for cbsolution
+	bool cb_set_solution_called = false;
+	std::vector<double> heuristic_solution;
+	bool cb_requires_submit_solution = false;
+};
 
 
 class ClpModel
@@ -327,7 +328,7 @@ class ClpModel
 	// Accessing information of problem
 	double get_variable_info(const VariableIndex &variable, const char *info_name);
 	std::string get_variable_name(const VariableIndex &variable);
-	void set_variable_name(const VariableIndex &variable, const char *name);
+	void set_variable_name(const VariableIndex &variable, char *name);
 	VariableDomain get_variable_type(const VariableIndex &variable);
 	void set_variable_type(const VariableIndex &variable, VariableDomain domain);
 	void set_variable_lower_bound(const VariableIndex &variable, double lb);
@@ -335,7 +336,7 @@ class ClpModel
 
 	double get_constraint_info(const ConstraintIndex &constraint, const char *info_name);
 	std::string get_constraint_name(const ConstraintIndex &constraint);
-	void set_constraint_name(const ConstraintIndex &constraint, const char *name);
+	void set_constraint_name(const ConstraintIndex &constraint, char *name);
 
 	void set_obj_sense(ObjectiveSense sense);
 
@@ -361,12 +362,12 @@ class ClpModel
 	int _checked_constraint_index(const ConstraintIndex &constraint);
 
 	// Callback
-	void set_callback(const COPTCallback &callback, int cbctx);
+	void set_callback(const clp_callback &callback, int cbctx);
 
 	// For callback
 	bool has_callback = false;
 	void *m_cbdata = nullptr;
-	COPTCallbackUserdata m_callback_userdata;
+	ClpCallbackUserdata m_callback_userdata;
 
 	int cb_get_info_int(const std::string &what);
 	double cb_get_info_double(const std::string &what);

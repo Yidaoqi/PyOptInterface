@@ -377,6 +377,39 @@ void ClpModel::set_objective(const ExprBuilder &function, ObjectiveSense sense)
 	}
 }
 
+void ClpModel::set_normalized_coefficient(const ConstraintIndex &constraint,
+                                          const VariableIndex &variable, double value)
+{
+	if (constraint.type != ConstraintType::Linear)
+	{
+		throw std::runtime_error("Only linear constraint supports set_normalized_coefficient");
+	}
+	int row = _checked_constraint_index(constraint);
+	int col = _checked_variable_index(variable);
+	clp::Clp_modifyCoefficient(m_model.get(), col, row, value);
+}
+
+double ClpModel::get_objective_coefficient(const VariableIndex &variable)
+{
+	int col = _checked_variable_index(variable);
+	const double *coefficients = clp::Clp_getObjCoefficients(m_model.get());
+	return coefficients[col];
+}
+
+void ClpModel::set_objective_coefficient(const VariableIndex &variable, double value)
+{
+	auto col = _checked_variable_index(variable);
+	const double *old_coefficients = clp::Clp_getObjCoefficients(m_model.get());
+	int coloumns = clp::Clp_getNumCols(m_model.get());
+	std::unique_ptr<double[]> new_coefficients = std::make_unique<double[]>(coloumns);
+	for (int i = 0; i < coloumns; i++)
+	{
+		new_coefficients[i] = old_coefficients[i];
+	}
+	new_coefficients[col] = value;
+	clp::Clp_chgObjCoefficients(m_model.get(), new_coefficients.get());
+}
+
 int ClpModel::_variable_index(const VariableIndex &variable)
 {
 	return m_variable_index.get_index(variable.index);
@@ -419,6 +452,16 @@ int ClpModel::_checked_constraint_index(const ConstraintIndex &constraint)
 		throw std::runtime_error("Constraint does not exist");
 	}
 	return row;
+}
+
+void ClpModel::set_callback(const clp_callback &callback, int cbctx)
+{
+	m_callback_userdata.model = this;
+	m_callback_userdata.callback = callback;
+
+	clp::Clp_registerCallBack(m_model.get(), callback);
+
+	has_callback = true;
 }
 
 static void check_error(int error)
@@ -477,10 +520,80 @@ static int clp_obj_sense(ObjectiveSense sense)
 	switch (sense)
 	{
 	case ObjectiveSense::Minimize:
-		return COPT_MINIMIZE;
+		return CLP_MINIMIZE;
 	case ObjectiveSense::Maximize:
-		return COPT_MAXIMIZE;
+		return CLP_MAXIMIZE;
 	default:
 		throw std::runtime_error("Unknown objective sense");
 	}
+}
+
+std::string ClpModel::get_variable_name(const VariableIndex &variable)
+{
+	auto column = _checked_variable_index(variable);
+	int reqsize = clp::Clp_lengthNames(m_model.get());
+	std::string retval(reqsize + 1, '\0');
+	clp::Clp_columnName(m_model.get(), column, retval.data());
+	return retval;
+}
+
+void ClpModel::set_variable_name(const VariableIndex &variable, char *name)
+{
+	auto column = _checked_variable_index(variable);
+	clp::Clp_setColumnName(m_model.get(), column, name);
+}
+
+void ClpModel::set_variable_lower_bound(const VariableIndex &variable, double lb)
+{
+	auto column = _checked_variable_index(variable);
+	double *lower = clp::Clp_columnLower(m_model.get());
+	lower[column] = lb;
+	clp::Clp_chgColumnLower(m_model.get(), lower);
+}
+
+void ClpModel::set_variable_upper_bound(const VariableIndex &variable, double ub)
+{
+	auto column = _checked_variable_index(variable);
+	double *upper = clp::Clp_columnUpper(m_model.get());
+	upper[column] = ub;
+	clp::Clp_chgColumnLower(m_model.get(), upper);
+}
+
+std::string ClpModel::get_constraint_name(const ConstraintIndex &constraint)
+{
+	int row = _checked_constraint_index(constraint);
+	int reqsize = clp::Clp_lengthNames(m_model.get());
+	std::string retval(reqsize + 1, '\0');
+	switch (constraint.type)
+	{
+	case ConstraintType::Linear:
+		clp::Clp_rowName(m_model.get(), row, retval.data());
+		break;
+	case ConstraintType::Quadratic:
+		//error = copt::COPT_GetQConstrName(m_model.get(), row, retval.data(), reqsize, &reqsize);
+		//break;
+	}
+	return retval;
+}
+
+void ClpModel::set_constraint_name(const ConstraintIndex &constraint, char *name)
+{
+	int row = _checked_constraint_index(constraint);
+	switch (constraint.type)
+	{
+	case ConstraintType::Linear:
+		clp::Clp_setRowName(m_model.get(), row, name);
+		break;
+	case ConstraintType::Quadratic:
+		//error = copt::COPT_SetQConstrNames(m_model.get(), 1, &row, names);
+		//break;
+	default:
+		throw std::runtime_error("Unknown constraint type");
+	}
+}
+
+void ClpModel::set_obj_sense(ObjectiveSense sense)
+{
+	int obj_sense = clp_obj_sense(sense);
+	clp::Clp_setObjSense(m_model.get(), obj_sense);
 }
