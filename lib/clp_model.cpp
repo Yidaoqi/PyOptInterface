@@ -399,15 +399,10 @@ double ClpModel::get_objective_coefficient(const VariableIndex &variable)
 void ClpModel::set_objective_coefficient(const VariableIndex &variable, double value)
 {
 	auto col = _checked_variable_index(variable);
-	const double *old_coefficients = clp::Clp_getObjCoefficients(m_model.get());
+	double *coefficients = const_cast<double*>(clp::Clp_getObjCoefficients(m_model.get()));
 	int coloumns = clp::Clp_getNumCols(m_model.get());
-	std::unique_ptr<double[]> new_coefficients = std::make_unique<double[]>(coloumns);
-	for (int i = 0; i < coloumns; i++)
-	{
-		new_coefficients[i] = old_coefficients[i];
-	}
-	new_coefficients[col] = value;
-	clp::Clp_chgObjCoefficients(m_model.get(), new_coefficients.get());
+	coefficients[col] = value;
+	clp::Clp_chgObjCoefficients(m_model.get(), coefficients);
 }
 
 int ClpModel::_variable_index(const VariableIndex &variable)
@@ -596,4 +591,9 @@ void ClpModel::set_obj_sense(ObjectiveSense sense)
 {
 	int obj_sense = clp_obj_sense(sense);
 	clp::Clp_setObjSense(m_model.get(), obj_sense);
+}
+
+void ClpModel::cb_exit()
+{
+	clp::Clp_clearCallBack(m_model.get());
 }
