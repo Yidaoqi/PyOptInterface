@@ -30,41 +30,6 @@ bool load_library(const std::string &path)
 	APILIST
 #undef B
 
-	// We have to deal with Clp 1.17.0 where some functions are absent from the dynamic library
-	{
-		int major, minor;
-		auto Clp_versionmajor_p =
-		    reinterpret_cast<decltype(Clp_VersionMajor)>(_function_pointers["Clp_VersionMajor"]);
-		auto Clp_versionminor_p =
-		    reinterpret_cast<decltype(Clp_VersionMinor)>(_function_pointers["Clp_VersionMinor"]);
-		
-		if (Clp_versionmajor_p != nullptr && Clp_versionminor_p)
-		{
-			major = Clp_versionmajor_p();
-			minor = Clp_versionminor_p();
-			if (major == 1 && minor == 17)
-			{
-			
-				// Now check there is no nullptr in _function_pointers
-				_load_success = true;
-				for (auto &pair : _function_pointers)
-				{
-					if (pair.second == nullptr)
-					{
-						fmt::print("function {} is not loaded correctly\n", pair.first);
-						_load_success = false;
-					}
-				}
-
-				if (_load_success)
-				{
-					/*DYLIB_SAVE_FUNCTION(GRBloadenvinternal);
-					DYLIB_SAVE_FUNCTION(GRBemptyenvinternal);*/
-				}
-			}
-		}
-	}
-
 	if (IS_DYLIB_LOAD_SUCCESS)
 	{
 #define B DYLIB_SAVE_FUNCTION
@@ -78,7 +43,8 @@ bool load_library(const std::string &path)
 		return false;
 	}
 }
-}  // namespace clp
+} // namespace clp
+
 
 ClpModel::ClpModel()
 {
@@ -214,12 +180,6 @@ ConstraintIndex ClpModel::add_linear_constraint(const ScalarAffineFunction &func
 	return constraint_index;
 }
 
-ConstraintIndex ClpModel::add_quadratic_constraint(const ScalarQuadraticFunction &function,
-                                                   ConstraintSense sense, CoeffT rhs,
-                                                   const char *name)
-{
-	return ConstraintIndex();
-}
 
 void ClpModel::delete_constraint(const ConstraintIndex &constraint)
 {
@@ -471,7 +431,7 @@ static void check_error(int error)
 	}
 }
 
-static char copt_con_sense(ConstraintSense sense)
+static char clp_con_sense(ConstraintSense sense)
 {
 	switch (sense)
 	{
@@ -552,6 +512,27 @@ void ClpModel::set_variable_upper_bound(const VariableIndex &variable, double ub
 	double *upper = clp::Clp_columnUpper(m_model.get());
 	upper[column] = ub;
 	clp::Clp_chgColumnLower(m_model.get(), upper);
+}
+
+double ClpModel::get_constraint_info(const ConstraintIndex &constraint, const char *info_name)
+{
+	int row = _checked_constraint_index(constraint);
+	double retval;
+	int num = 1;
+	//int error;
+	switch (constraint.type)
+	{
+	case ConstraintType::Linear:
+		retval = clp::Clp_getRowStatus(m_model.get(), row);
+		break;
+	//case ConstraintType::Quadratic:
+	//	error = copt::COPT_GetQConstrInfo(m_model.get(), info_name, num, &row, &retval);
+	//	break;
+	default:
+		throw std::runtime_error("Unknown constraint type");
+	}
+	//check_error(error);
+	return retval;
 }
 
 std::string ClpModel::get_constraint_name(const ConstraintIndex &constraint)

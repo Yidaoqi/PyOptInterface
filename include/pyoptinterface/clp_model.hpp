@@ -388,10 +388,10 @@ class ClpModel
 	void cb_add_user_cut(const ExprBuilder &function, ConstraintSense sense, CoeffT rhs);
 
 	// IIS related
-	void computeIIS();
-	int _get_variable_upperbound_IIS(const VariableIndex &variable);
-	int _get_variable_lowerbound_IIS(const VariableIndex &variable);
-	int _get_constraint_IIS(const ConstraintIndex &constraint);
+	//void computeIIS();
+	//int _get_variable_upperbound_IIS(const VariableIndex &variable);
+	//int _get_variable_lowerbound_IIS(const VariableIndex &variable);
+	//int _get_constraint_IIS(const ConstraintIndex &constraint);
 
 
   private:
