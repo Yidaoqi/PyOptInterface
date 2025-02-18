@@ -379,17 +379,17 @@ void ClpModel::set_callback(const clp_callback &callback, int cbctx)
 	has_callback = true;
 }
 
-static void check_error(int error)
-{
-	if (error)
-	{
-		const int BUFFSIZE = 1000;
-		char errmsg[BUFFSIZE] = {0};
-
-		clp::Clp_GetRetcodeMsg(error, errmsg, BUFFSIZE);
-		throw std::runtime_error(errmsg);
-	}
-}
+//static void check_error(int error)
+//{
+//	if (error)
+//	{
+//		const int BUFFSIZE = 1000;
+//		char errmsg[BUFFSIZE] = {0};
+//
+//		clp::Clp_GetRetcodeMsg(error, errmsg, BUFFSIZE);
+//		throw std::runtime_error(errmsg);
+//	}
+//}
 
 static char clp_con_sense(ConstraintSense sense)
 {
@@ -492,9 +492,6 @@ double ClpModel::get_constraint_info(const ConstraintIndex &constraint, const ch
 	case ConstraintType::Linear:
 		retval = clp::Clp_getRowStatus(m_model.get(), row);
 		break;
-	//case ConstraintType::Quadratic:
-	//	error = copt::COPT_GetQConstrInfo(m_model.get(), info_name, num, &row, &retval);
-	//	break;
 	default:
 		throw std::runtime_error("Unknown constraint type");
 	}
@@ -527,9 +524,6 @@ void ClpModel::set_constraint_name(const ConstraintIndex &constraint, char *name
 	case ConstraintType::Linear:
 		clp::Clp_setRowName(m_model.get(), row, name);
 		break;
-	case ConstraintType::Quadratic:
-		//error = copt::COPT_SetQConstrNames(m_model.get(), 1, &row, names);
-		//break;
 	default:
 		throw std::runtime_error("Unknown constraint type");
 	}
@@ -541,7 +535,90 @@ void ClpModel::set_obj_sense(ObjectiveSense sense)
 	clp::Clp_setObjSense(m_model.get(), obj_sense);
 }
 
+double ClpModel::get_normalized_rhs(const ConstraintIndex &constraint)
+{
+	int row = _checked_constraint_index(constraint);
+	int num = 1;
+	switch (constraint.type)
+	{
+	case ConstraintType::Linear: {
+		double lb, ub;
+		const double *lowers = clp::Clp_getRowLower(m_model.get());
+		const double *uppers = clp::Clp_getRowUpper(m_model.get());
+		lb = lowers[row];
+		ub = uppers[row];
+
+		bool lb_inf = lb < -CLP_INFINITY + 1.0;
+		bool ub_inf = ub > CLP_INFINITY - 1.0;
+
+		if (!lb_inf)
+			return lb;
+		if (!ub_inf)
+			return ub;
+
+		throw std::runtime_error("Constraint has no finite bound");
+	}
+	break;
+	default:
+		throw std::runtime_error("Unknown constraint type to get_normalized_rhs");
+	}
+}
+
+void ClpModel::set_normalized_rhs(const ConstraintIndex &constraint, double value)
+{
+	int row = _checked_constraint_index(constraint);
+	switch (constraint.type)
+	{
+	case ConstraintType::Linear: {
+		double lb, ub;
+
+		double *lowers = const_cast<double *>(clp::Clp_getRowLower(m_model.get()));
+		double *uppers = const_cast<double *>(clp::Clp_getRowUpper(m_model.get()));
+		lb = lowers[row];
+		ub = uppers[row];
+
+		bool lb_inf = lb < -CLP_INFINITY + 1.0;
+		bool ub_inf = ub > CLP_INFINITY - 1.0;
+
+		if (!lb_inf)
+		{
+			lowers[row] = value;
+			clp::Clp_chgRowLower(m_model.get(), lowers);
+		}
+		if (!ub_inf)
+		{
+			uppers[row] = value;
+			clp::Clp_chgRowUpper(m_model.get(), uppers);
+		}
+
+		if (lb_inf && ub_inf)
+		{
+			throw std::runtime_error("Constraint has no finite bound");
+		}
+	}
+	break;
+	default:
+		throw std::runtime_error("Unknown constraint type to set_normalized_rhs");
+	}
+}
+
 void ClpModel::cb_exit()
 {
 	clp::Clp_clearCallBack(m_model.get());
+}
+
+double ClpModel::cb_get_solution(const VariableIndex &variable)
+{
+	auto index = _variable_index(variable);
+
+	const double *solutions = clp::Clp_getColSolution(m_model.get());
+	return solutions[index];
+}
+
+void ClpModel::cb_set_solution(const VariableIndex &variable, double value)
+{	
+	int index = _variable_index(variable);
+	double *solutions = const_cast<double *>(clp::Clp_getColSolution(m_model.get()));
+	solutions[index] = value;
+	clp::Clp_setColSolution(m_model.get(), solutions);
 }

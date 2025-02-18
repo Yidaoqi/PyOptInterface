@@ -8,7 +8,6 @@
 #include "pyoptinterface/container.hpp"
 #include "pyoptinterface/solver_common.hpp"
 #include "pyoptinterface/dylib.hpp"
-#include "copt_model.hpp"
 
 // define CLP C APIs
 #define APILIST					\
@@ -210,7 +209,7 @@ class ClpEnvConfig
 	void set(const char *param_name, const char *value);
 
   private:
-	copt_env_config *m_config;
+	clp_env_config *m_config;
 
 	friend class COPTEnv;
 };
@@ -223,7 +222,7 @@ class ClpEnv
 	~ClpEnv();
 
   private:
-	copt_env *m_env;
+	clp_env *m_env;
 
 	friend class ClpModel;
 };
@@ -285,22 +284,10 @@ class ClpModel
 	ConstraintIndex add_quadratic_constraint(const ScalarQuadraticFunction &function,
 	                                         ConstraintSense sense, CoeffT rhs,
 	                                         const char *name = nullptr);
-	//ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type);
-	//ConstraintIndex add_sos_constraint(const Vector<VariableIndex> &variables, SOSType sos_type,
-	//                                   const Vector<CoeffT> &weights);
-
-	// x[0]^2 >= x[1]^2 + x[2]^2 + ... + x[n-1]^2
-	ConstraintIndex add_second_order_cone_constraint(const Vector<VariableIndex> &variables,
-	                                                 const char *name, bool rotated = false);
-
-	ConstraintIndex add_exp_cone_constraint(const Vector<VariableIndex> &variables,
-	                                        const char *name, bool dual = false);
 
 	void delete_constraint(const ConstraintIndex &constraint);
 	bool is_constraint_active(const ConstraintIndex &constraint);
 
-	void _set_affine_objective(const ScalarAffineFunction &function, ObjectiveSense sense,
-	                           bool clear_quadratic);
 	void set_objective(const ScalarAffineFunction &function, ObjectiveSense sense);
 	void set_objective(const ScalarQuadraticFunction &function, ObjectiveSense sense);
 	void set_objective(const ExprBuilder &function, ObjectiveSense sense);
@@ -345,9 +332,6 @@ class ClpModel
 
 	void set_obj_sense(ObjectiveSense sense);
 
-	// MIPStart
-	void add_mip_start(const Vector<VariableIndex> &variables, const Vector<double> &values);
-
 	// Modifications of model
 	// 1. set/get RHS of a constraint
 	double get_normalized_rhs(const ConstraintIndex &constraint);
@@ -391,12 +375,6 @@ class ClpModel
 	void cb_add_lazy_constraint(const ExprBuilder &function, ConstraintSense sense, CoeffT rhs);
 	void cb_add_user_cut(const ScalarAffineFunction &function, ConstraintSense sense, CoeffT rhs);
 	void cb_add_user_cut(const ExprBuilder &function, ConstraintSense sense, CoeffT rhs);
-
-	// IIS related
-	//void computeIIS();
-	//int _get_variable_upperbound_IIS(const VariableIndex &variable);
-	//int _get_variable_lowerbound_IIS(const VariableIndex &variable);
-	//int _get_constraint_IIS(const ConstraintIndex &constraint);
 
 
   private:
