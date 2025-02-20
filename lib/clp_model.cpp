@@ -69,7 +69,6 @@ void ClpModel::write(const std::string &filename)
 	{
 		error = clp::Clp_writeMps(m_model.get(), filename.c_str(), 0, 1, 1);
 	}
-	check_error(error);
 }
 
 VariableIndex ClpModel::add_variable(VariableDomain domain, double lb, double ub, char *name)
@@ -134,7 +133,7 @@ bool ClpModel::is_variable_active(const VariableIndex &variable)
 
 double ClpModel::get_variable_value(const VariableIndex &variable)
 {
-	return get_variable_info(variable, COPT_DBLINFO_VALUE);
+	return get_variable_info(variable, CLP_DBLINFO_VALUE);
 }
 
 std::string ClpModel::pprint_variable(const VariableIndex &variable)
@@ -213,7 +212,6 @@ void ClpModel::delete_constraint(const ConstraintIndex &constraint)
 			throw std::runtime_error("Unknown constraint type");
 		}
 	}
-	check_error(error);
 }
 
 bool ClpModel::is_constraint_active(const ConstraintIndex &constraint)
@@ -295,6 +293,31 @@ void ClpModel::set_objective(const ExprBuilder &function, ObjectiveSense sense)
 	{
 		throw std::runtime_error("Objective must be linear or quadratic");
 	}
+}
+
+double ClpModel::get_normalized_coefficient(const ConstraintIndex &constraint,
+                                            const VariableIndex &variable)
+{
+	if (constraint.type != ConstraintType::Linear)
+	{
+		throw std::runtime_error("Only linear constraint supports get_normalized_coefficient");
+	}
+	int row = _checked_constraint_index(constraint);
+	int col = _checked_variable_index(variable);
+	double retval = 0.0;
+	const double *elements = clp::Clp_getElements(m_model.get());
+	const int *row_indices = clp::Clp_getIndices(m_model.get());
+	const CoinBigIndex *col_starts = clp::Clp_getVectorStarts(m_model.get());
+	CoinBigIndex left = col_starts[col], right = col_starts[col+1];
+	for (int i = left; i < right; i++)
+	{
+		if (row == row_indices[i])
+		{
+			retval = elements[i];
+			break;
+		}
+	}
+	return retval;
 }
 
 void ClpModel::set_normalized_coefficient(const ConstraintIndex &constraint,
@@ -391,20 +414,20 @@ void ClpModel::set_callback(const clp_callback &callback, int cbctx)
 //	}
 //}
 
-static char clp_con_sense(ConstraintSense sense)
-{
-	switch (sense)
-	{
-	case ConstraintSense::LessEqual:
-		return CLP_LESS_EQUAL;
-	case ConstraintSense::Equal:
-		return CLP_EQUAL;
-	case ConstraintSense::GreaterEqual:
-		return CLP_GREATER_EQUAL;
-	default:
-		throw std::runtime_error("Unknown constraint sense");
-	}
-}
+//static char clp_con_sense(ConstraintSense sense)
+//{
+//	switch (sense)
+//	{
+//	case ConstraintSense::LessEqual:
+//		return CLP_LESS_EQUAL;
+//	case ConstraintSense::Equal:
+//		return CLP_EQUAL;
+//	case ConstraintSense::GreaterEqual:
+//		return CLP_GREATER_EQUAL;
+//	default:
+//		throw std::runtime_error("Unknown constraint sense");
+//	}
+//}
 
 void ClpModel::optimize()
 {
@@ -416,7 +439,6 @@ void ClpModel::optimize()
 	clp::Clp_initialSolve(m_model.get());
 	double* solutions = clp::Clp_primalColumnSolution(m_model.get());
 	int error = clp::Clp_status(m_model.get());
-	check_error(error);
 }
 
 void *ClpModel::get_raw_model()

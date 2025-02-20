@@ -281,9 +281,9 @@ class ClpModel
 	ConstraintIndex add_linear_constraint(const ScalarAffineFunction &function,
 	                                      ConstraintSense sense, CoeffT rhs,
 	                                      char *name = nullptr);
-	ConstraintIndex add_quadratic_constraint(const ScalarQuadraticFunction &function,
-	                                         ConstraintSense sense, CoeffT rhs,
-	                                         const char *name = nullptr);
+	//ConstraintIndex add_quadratic_constraint(const ScalarQuadraticFunction &function,
+	//                                         ConstraintSense sense, CoeffT rhs,
+	//                                         const char *name = nullptr);
 
 	void delete_constraint(const ConstraintIndex &constraint);
 	bool is_constraint_active(const ConstraintIndex &constraint);
