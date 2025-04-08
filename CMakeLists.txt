@@ -207,7 +207,6 @@ lib/highs_model.cpp
 )
 target_include_directories(highs_model PUBLIC thirdparty/solvers/highs)
 target_link_libraries(highs_model PUBLIC core)
-# target_link_libraries(highs_model PUBLIC HiGHS::HiGHS)
 
 nanobind_add_module(
 highs_model_ext
@@ -237,6 +236,25 @@ nanobind_add_module(
 )
 target_link_libraries(ipopt_model_ext PUBLIC ipopt_model)
 install(TARGETS ipopt_model_ext LIBRARY DESTINATION ${POI_INSTALL_DIR})
+
+
+#clpp
+add_library(clpp_model STATIC)
+target_sources(clpp_model PRIVATE
+include/pyoptinterface/clpp_model.hpp
+lib/clpp_model.cpp)
+target_include_directories(clpp_model PUBLIC thirdparty/solvers/clpp)
+target_link_libraries(clpp_model PUBLIC core)
+
+nanobind_add_module(
+clpp_model_ext
+
+STABLE_ABI NB_STATIC
+
+lib/clpp_model_ext.cpp
+)
+target_link_libraries(clpp_model_ext PUBLIC clpp_model)
+install(TARGETS clpp_model_ext LIBRARY DESTINATION ${POI_INSTALL_DIR})
 
 # stub
 nanobind_add_stub(
