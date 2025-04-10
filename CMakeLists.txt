@@ -237,6 +237,42 @@ nanobind_add_module(
 target_link_libraries(ipopt_model_ext PUBLIC ipopt_model)
 install(TARGETS ipopt_model_ext LIBRARY DESTINATION ${POI_INSTALL_DIR})
 
+##linear_ip
+if(DEFINED ENV{EIGEN_ROOT})
+    set(EIGEN_ROOT $ENV{EIGEN_ROOT})
+    message(STATUS "Eigen root: ${EIGEN_ROOT}")
+else()
+    message(WARNING "EIGEN_ROOT not found")
+endif()
+include_directories(include ${EIGEN_ROOT})
+#lp_impl
+add_library(lp_impl STATIC)
+target_sources(lp_impl PRIVATE
+include/pyoptinterface/lp_impl.hpp
+lib/lp_impl.cpp)
+install(TARGETS lp_impl LIBRARY DESTINATION ${POI_INSTALL_DIR})
+
+#lp
+add_library(lp STATIC)
+target_sources(lp PRIVATE
+include/pyoptinterface/lp.hpp
+lib/lp.cpp)
+target_link_libraries(lp lp_impl)
+install(TARGETS lp LIBRARY DESTINATION ${POI_INSTALL_DIR})
+
+# #clpp_interface
+# add_library(clpp_interface SHARED)
+# target_sources(clpp_interface PRIVATE
+# include/pyoptinterface/ClppStdCInterface.hpp
+# lib/ClppStdCInterface.cpp)
+# target_compile_definitions(clpp_interface
+#     PRIVATE
+#         _BUILD_CLPP
+#     PUBLIC
+#         ${CMAKE_CXX_STANDARD}  # 传播C++标准设置
+# )
+# target_link_libraries(clpp_interface lp)
+# install(TARGETS clpp_interface LIBRARY DESTINATION ${POI_INSTALL_DIR})
 
 #clpp
 add_library(clpp_model STATIC)
@@ -244,7 +280,7 @@ target_sources(clpp_model PRIVATE
 include/pyoptinterface/clpp_model.hpp
 lib/clpp_model.cpp)
 target_include_directories(clpp_model PUBLIC thirdparty/solvers/clpp)
-target_link_libraries(clpp_model PUBLIC core)
+target_link_libraries(clpp_model PUBLIC core lp)
 
 nanobind_add_module(
 clpp_model_ext
