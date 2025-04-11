@@ -63,11 +63,11 @@ double   min_ratio(const Vector &x, const Vector &dx);
 class   lp_impl{
     public: 
         /** @brief The cost vector */
-        const Vector c_;
+        Vector c_;
         /** @brief The constraint matrix*/
-        const Matrix A_;
+        Matrix A_;
         /** @brief The constraint vector*/
-        const Vector b_;
+        Vector b_;
         /** @brief The current estimated primal solution.*/
         Vector x_;
         /** @brief The current estimated dual solution for 
@@ -95,7 +95,8 @@ class   lp_impl{
          * @param A The constraint matrix
          * @param b The constraint vector
          */
-        lp_impl(Vector c, Matrix A, Vector b);
+	    lp_impl();
+        lp_impl(const Vector &c, const Matrix &A, const Vector &b);
 
         /** @brief Initializes the primal and dual solutions. 
          * This initializes the primal and dual solutions using

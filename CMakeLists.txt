@@ -260,19 +260,6 @@ lib/lp.cpp)
 target_link_libraries(lp lp_impl)
 install(TARGETS lp LIBRARY DESTINATION ${POI_INSTALL_DIR})
 
-# #clpp_interface
-# add_library(clpp_interface SHARED)
-# target_sources(clpp_interface PRIVATE
-# include/pyoptinterface/ClppStdCInterface.hpp
-# lib/ClppStdCInterface.cpp)
-# target_compile_definitions(clpp_interface
-#     PRIVATE
-#         _BUILD_CLPP
-#     PUBLIC
-#         ${CMAKE_CXX_STANDARD}  # 传播C++标准设置
-# )
-# target_link_libraries(clpp_interface lp)
-# install(TARGETS clpp_interface LIBRARY DESTINATION ${POI_INSTALL_DIR})
 
 #clpp
 add_library(clpp_model STATIC)

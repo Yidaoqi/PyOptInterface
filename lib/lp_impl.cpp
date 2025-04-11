@@ -1,9 +1,17 @@
 #include "pyoptinterface/lp_impl.hpp"
 
-namespace linear_ip{
-
-lp_impl::lp_impl(Vector c, 
-        Matrix A, Vector b):
+namespace linear_ip
+{
+lp_impl::lp_impl()
+{
+	rows_ = 0;
+	cols_ = 0;
+	is_solved_ = false;
+	max_itr_ = 10;
+	tol_ = 1e-6;
+}
+lp_impl::lp_impl(const Vector &c, 
+        const Matrix &A, const Vector &b):
     A_(A), b_(b), c_(c){
 
     rows_ = A_.rows();
