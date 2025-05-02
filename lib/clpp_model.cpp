@@ -2,16 +2,70 @@
 #include <stdexcept>
 #include <iostream>
 
+#include "fmt/core.h"
+#include "fmt/ranges.h"
+#include "pyoptinterface/dylib.hpp"
+namespace clpp
+{
+#define B DYLIB_DECLARE
+APILIST
+#undef B
+
+static DynamicLibrary lib;
+static bool is_loaded = false;
+
+bool is_library_loaded()
+{
+	return is_loaded;
+}
+
+bool load_library(const std::string &path)
+{
+	bool success = lib.try_load(path.c_str());
+	if (!success)
+	{
+		return false;
+	}
+
+	DYLIB_LOAD_INIT;
+
+#define B DYLIB_LOAD_FUNCTION
+	APILIST
+#undef B
+
+	if (IS_DYLIB_LOAD_SUCCESS)
+	{
+#define B DYLIB_SAVE_FUNCTION
+		APILIST
+#undef B
+		is_loaded = true;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+}  // namespace clpp
+
 ClppModel::ClppModel()
 {
-	m_model = std::make_unique<linear_ip::lp>();
+	if (!clpp::is_library_loaded())
+	{
+		throw std::runtime_error("Clpp library is not loaded");
+	}
+	double c[1] = {0};
+	double A[1] = {0};
+	double b[1] = {0};
+	ClppProblemInfo* solver = clpp::CreateClppProblem(c, A, b, 1, 1);
+	m_model.reset(solver);
 }
 
 void ClppModel::solve()
 {
 	try
 	{
-		m_model->solve();
+		clpp::ClppSolve(m_model.get());
 	}
 	catch (std::exception &e)
 	{
@@ -21,78 +75,102 @@ void ClppModel::solve()
 
 bool ClppModel::is_solved() const
 {
-	return m_model->is_solved();
+	return clpp::ClppIsSolved(m_model.get());
 }
 
 const std::vector<double> ClppModel::get_x() const
 {
-	linear_ip::Vector temp = m_model->get_x();
-	return std::vector<double>(temp.data(), temp.data() + temp.size());
+	size_t length = clpp::ClppGetCols(m_model.get());
+	double *buff = new double[length];
+	const double *x = clpp::ClppGetX(m_model.get(), buff);
+	std::vector<double> X(x, x + length);
+	delete[] buff;
+	return X;
 }
 
 const std::vector<double> ClppModel::get_lam() const
 {
-	linear_ip::Vector temp = m_model->get_lam();
-	return std::vector<double>(temp.data(), temp.data() + temp.size());
+	size_t length = clpp::ClppGetRows(m_model.get());
+	double *buff = new double[length];
+	const double *temp = clpp::ClppGetLam(m_model.get(), buff);
+	std::vector<double> lam(temp, temp + length);
+	delete[] buff;
+	return lam;
 }
 
 const std::vector<double> ClppModel::get_s() const
 {
-	linear_ip::Vector temp = m_model->get_s();
-	return std::vector<double>(temp.data(), temp.data() + temp.size());
+	size_t length = clpp::ClppGetCols(m_model.get());
+	double *buff = new double[length];
+	const double *temp = clpp::ClppGetS(m_model.get(), buff);
+	std::vector<double> s(temp, temp + length);
+	delete[] buff;
+	return s;
 }
 
 const std::vector<double> ClppModel::get_A() const
 {
-	linear_ip::Matrix temp = m_model->get_A();
-	return std::vector<double>(temp.data(), temp.data() + temp.size());
+	size_t cols = clpp::ClppGetCols(m_model.get());
+	size_t rows = clpp::ClppGetRows(m_model.get());
+	double *buff = new double[rows*cols];
+	const double* temp = clpp::ClppGetA(m_model.get(), buff);
+	std::vector<double> A(temp, temp + (rows * cols));
+	delete[] buff;
+	return A;
 }
 
 const std::vector<double> ClppModel::get_c() const
 {
-	linear_ip::Vector temp = m_model->get_c();
-	return std::vector<double>(temp.data(), temp.data() + temp.size());
+	size_t length = clpp::ClppGetCols(m_model.get());
+	double *buff = new double[length];
+	const double* temp = clpp::ClppGetC(m_model.get(), buff);
+	std::vector<double> c(temp, temp + length);
+	delete[] buff;
+	return c;
 }
 
 const std::vector<double> ClppModel::get_b() const
 {
-	linear_ip::Vector temp = m_model->get_b();
-	return std::vector<double>(temp.data(), temp.data() + temp.size());
+	size_t length = clpp::ClppGetRows(m_model.get());
+	double *buff = new double[length];
+	const double* temp = clpp::ClppGetB(m_model.get(), buff);
+	std::vector<double> b(temp, temp + length);
+	delete[] buff;
+	return b;
 }
 
 const int ClppModel::get_rows() const
 {
-	return m_model->get_rows();
+	return clpp::ClppGetRows(m_model.get());
 }
 
 const int ClppModel::get_cols() const
 {
-	return m_model->get_cols();
+	return clpp::ClppGetCols(m_model.get());
 }
 
-void ClppModel::set_A(const std::vector<double> &A, size_t rows, size_t cols)
+void ClppModel::set_A(std::vector<double> &A, size_t rows, size_t cols)
 {
-	m_model->set_A(A, rows, cols);
+	clpp::ClppSetA(m_model.get(), A.data(), rows, cols);
 }
 
-void ClppModel::set_c(const std::vector<double> &c, size_t length)
+void ClppModel::set_c(std::vector<double> &c, size_t length)
 {
-	m_model->set_c(c, length);
+	clpp::ClppSetC(m_model.get(), c.data(), length);
 }
 
-void ClppModel::set_b(const std::vector<double> &b, size_t length)
+void ClppModel::set_b(std::vector<double> &b, size_t length)
 {
-	m_model->set_b(b, length);
+	clpp::ClppSetB(m_model.get(), b.data(), length);
 }
 
 void ClppModel::set_max_itr(const size_t max_itr)
 {
-	m_model->set_max_itr(max_itr);
+	clpp::ClppSetMaxItr(m_model.get(), max_itr);
 }
 
 void ClppModel::set_tol(const double tol)
 {
-	m_model->set_tol(tol);
+	clpp::ClppSetTol(m_model.get(), tol);
 }
-
 

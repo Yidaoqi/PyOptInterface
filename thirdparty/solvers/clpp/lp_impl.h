@@ -11,7 +11,7 @@
  * @date 03/02/2013
  */
 
-#include "pyoptinterface/lp.hpp"
+#include "lp.h"
 #include <iostream>
 #include <sstream>
 #include <cmath>
@@ -27,7 +27,7 @@ typedef Eigen::TriangularView<Matrix, Eigen::Upper> u_triang;
 /** @brief POD Container for residuals used to determine the
  * update directions
  */
-struct   residuals{
+struct  residuals{
     /**@brief Ax-b */
     Matrix b;
     /**@brief A^T*lam + s-c*/
@@ -38,7 +38,7 @@ struct   residuals{
 /** @brief POD Container for the update directions for the Newton
  * step.
  */
-struct   directions{
+struct  directions{
     Matrix lam;
     Matrix s;
     Matrix x;}; 
@@ -51,16 +51,16 @@ struct   directions{
  * @param eta Damping parameter so v + stepsize*dv stays off the
  * boundary. Assumed between 0 and 1.
  * @return The stepsize.*/
-double   corrector_stepsize(const Matrix &v, const Matrix &dv, double eta);
+double  corrector_stepsize(const Matrix &v, const Matrix &dv, double eta);
 
 /** @relates lp_impl
  * Compute the maximum stepsize in the direction dx which maintains* x>=0.
  * @param x The current solution.
  * @param dx Direction to update x.
  * @return Largest stepsize which mainstains x>=0.*/
-double   min_ratio(const Vector &x, const Vector &dx);
+double  min_ratio(const Vector &x, const Vector &dx);
 
-class   lp_impl{
+class  lp_impl{
     public: 
         /** @brief The cost vector */
         Vector c_;
@@ -95,8 +95,7 @@ class   lp_impl{
          * @param A The constraint matrix
          * @param b The constraint vector
          */
-	    lp_impl();
-        lp_impl(const Vector &c, const Matrix &A, const Vector &b);
+        lp_impl(const Vector c, const Matrix A, const Vector b);
 
         /** @brief Initializes the primal and dual solutions. 
          * This initializes the primal and dual solutions using

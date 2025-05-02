@@ -2,12 +2,49 @@
 
 #include <memory>
 
-#include "pyoptinterface/lp.hpp"
+#include "solvers/clpp/ClppStdCInterface.h"
 #include "pyoptinterface/container.hpp"
 #include "pyoptinterface/solver_common.hpp"
+#include "pyoptinterface/nleval.hpp"
 #include "pyoptinterface/dylib.hpp"
 
+#define APILIST            \
+	B(CreateClppProblem); \
+	B(FreeClppProblem);   \
+	B(ClppIsSolved);	  \
+	B(ClppSolve);			\
+	B(ClppGetX);			\
+	B(ClppGetLam);			\
+	B(ClppGetS);			\
+	B(ClppGetA);			\
+	B(ClppGetC);			\
+	B(ClppGetB);			\
+	B(ClppSetA);			\
+	B(ClppSetC);			\
+	B(ClppSetB);			\
+	B(ClppSetMaxItr);		\
+	B(ClppSetTol);			\
+	B(ClppGetRows);			\
+	B(ClppGetCols);
 
+namespace clpp
+{
+#define B DYLIB_EXTERN_DECLARE
+APILIST
+#undef B
+
+bool is_library_loaded();
+
+bool load_library(const std::string &path);
+} // namespace clpp
+
+struct ClppfreeproblemT
+{
+	void operator()(ClppProblemInfo *model) const
+	{
+		clpp::FreeClppProblem(model);
+	};
+};
 
 class ClppModel
 {
@@ -29,12 +66,12 @@ class ClppModel
     const int get_rows() const;
 	const int get_cols() const;
 
-	void set_A(const std::vector<double> &A, size_t rows, size_t cols);
-	void set_c(const std::vector<double> &c, size_t length);
-	void set_b(const std::vector<double> &b, size_t length);
+	void set_A(std::vector<double> &A, size_t rows, size_t cols);
+	void set_c(std::vector<double> &c, size_t length);
+	void set_b(std::vector<double> &b, size_t length);
 
 	void set_max_itr(const size_t max_itr);
 	void set_tol(const double tol);
   private:
-	std::unique_ptr<linear_ip::lp> m_model;
+	std::unique_ptr<ClppProblemInfo, ClppfreeproblemT> m_model;
 };
